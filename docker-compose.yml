@@ -1,0 +1,55 @@
+version: '3.8'
+
+services:
+  # 1. DATA WAREHOUSE (PostgreSQL)
+  postgres:
+    image: postgres:16-alpine
+    restart: always
+    env_file:
+      - .env
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./postgres/init.sql:/docker-entrypoint-initdb.d/init.sql # <-- NUEVO: Montaje del esquema
+    ports:
+      - "5432:5432"
+
+  # 2. ETL (Ingesta de datos y script de entrenamiento)
+  etl:
+    build:
+      context: .
+      dockerfile: ./etl/Dockerfile
+    depends_on:
+      - postgres
+    environment:
+      POSTGRES_HOST: postgres
+    command: ["tail", "-f", "/dev/null"] 
+
+  # 3. API (Serving)
+  api:
+    build:
+      context: .
+      dockerfile: ./api/Dockerfile
+    depends_on:
+      - postgres
+      - etl
+    environment:
+      POSTGRES_HOST: postgres
+    ports:
+      - "8000:8000"
+    command: ["tail", "-f", "/dev/null"] 
+
+  # 4. DASHBOARD (Streamlit Frontend)
+  dashboard:
+    build:
+      context: .
+      dockerfile: ./dashboard/Dockerfile
+    depends_on:
+      - api
+    ports:
+      - "8501:8501"
+    environment:
+      API_HOST: api
+    command: ["tail", "-f", "/dev/null"] 
+
+volumes:
+  postgres_data:

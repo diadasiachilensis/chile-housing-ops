@@ -1,0 +1,12 @@
+# Archivos de configuracion de entorno (CREDENTIALS)
+.env
+
+# Directorios de datos de la base de datos (VOLUMES)
+postgres_data/
+
+# Directorios de logs y caches de Python
+__pycache__/
+*.pyc
+
+# Logs y caches de Docker/Compose (aunque generalmente no estan aqui)
+.DS_Store
