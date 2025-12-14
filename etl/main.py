@@ -4,6 +4,7 @@ import psycopg2
 from datetime import datetime
 
 """----- CONFIGURACION DE LA CONEXIÓN DB -----"""
+
 #funcion que sera llamada para abrir la conexión a la base de datos
 def get_db_connection():
     return psycopg2.connect(                        #con psycopg2, estabelce la conexion con todos los parametros y devuelve el objeto de conexion 
