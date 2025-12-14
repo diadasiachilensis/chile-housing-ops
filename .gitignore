@@ -9,4 +9,5 @@ __pycache__/
 *.pyc
 
 # Logs y caches de Docker/Compose (aunque generalmente no estan aqui)
-.DS_Store
+.DS_Storevenv/
+env/

@@ -1,0 +1,12 @@
+# Directorios de entornos virtuales
+venv/
+env/
+
+# Archivos de caché
+__pycache__
+*.pyc
+
+# Archivos de configuración locales que no deben ir en la imagen
+.DS_Store
+*.env
+*.cfg

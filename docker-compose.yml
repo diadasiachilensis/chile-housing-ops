@@ -1,55 +1,55 @@
-version: '3.8'
-
 services:
-  # 1. DATA WAREHOUSE (PostgreSQL)
   postgres:
-    image: postgres:16-alpine
+    image: postgres:16.11-alpine
     restart: always
-    env_file:
-      - .env
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./postgres/init.sql:/docker-entrypoint-initdb.d/init.sql # <-- NUEVO: Montaje del esquema
+      - ./postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
     ports:
       - "5432:5432"
 
-  # 2. ETL (Ingesta de datos y script de entrenamiento)
   etl:
-    build:
+    build: 
       context: .
-      dockerfile: ./etl/Dockerfile
-    depends_on:
-      - postgres
+      dockerfile: etl/Dockerfile
     environment:
       POSTGRES_HOST: postgres
-    command: ["tail", "-f", "/dev/null"] 
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    entrypoint: /bin/sh -c "sleep 5 && python main.py"
+    depends_on:
+      - postgres
 
-  # 3. API (Serving)
   api:
     build:
       context: .
-      dockerfile: ./api/Dockerfile
-    depends_on:
-      - postgres
-      - etl
+      dockerfile: api/Dockerfile
     environment:
       POSTGRES_HOST: postgres
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     ports:
       - "8000:8000"
-    command: ["tail", "-f", "/dev/null"] 
+    entrypoint: /bin/sh -c "sleep 10 && uvicorn app:app --host 0.0.0.0 --port 8000"
+    depends_on:
+      - postgres
 
-  # 4. DASHBOARD (Streamlit Frontend)
   dashboard:
     build:
       context: .
-      dockerfile: ./dashboard/Dockerfile
-    depends_on:
-      - api
-    ports:
-      - "8501:8501"
+      dockerfile: dashboard/Dockerfile
     environment:
       API_HOST: api
-    command: ["tail", "-f", "/dev/null"] 
+    ports:
+      - "8501:8501"
+    depends_on:
+      - api
 
 volumes:
   postgres_data:
