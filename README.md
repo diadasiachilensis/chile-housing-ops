@@ -6,6 +6,14 @@
 
 Este proyecto establece una arquitectura de microservicios contenerizada para la ingesta, almacenamiento, exposición y visualización de indicadores económicos chilenos (inicialmente el valor de la UF). El objetivo principal es servir como base para implementar prácticas avanzadas de **DevOps, MLOps e Ingeniería de Datos**.
 
+Este proyecto implementa un flujo de datos completo (End-to-End) para indicadores económicos.
+
+Utilicé una estrategia de microservicios contenerizados para garantizar la modularidad. El flujo comienza con un servicio ETL en Python que ingesta y normaliza los datos. Estos se persisten en una base de datos PostgreSQL con volúmenes dedicados para asegurar la durabilidad.
+
+Para exponer los datos, desarrollé una API RESTful con FastAPI que sirve como capa de abstracción, permitiendo que el frontend, un dashboard interactivo en Streamlit, consuma la información de manera agnóstica a la base de datos.
+
+Toda la infraestructura se define como código (IaC) mediante Docker Compose, lo que permite desplegar el entorno completo con un solo comando, asegurando consistencia entre desarrollo y producción.
+
 ## 🏗️ Arquitectura del Sistema
 
 El sistema está compuesto por 4 servicios orquestados mediante Docker Compose:
