@@ -23,28 +23,27 @@ def extract_uf_data():
         return pd.DataFrame()
 
     try:
-        # 2. Autenticación usando la clase Siete (Según documentación oficial)
+        # 2. Autenticación
         siete = bcchapi.Siete(bcch_user, bcch_pass)
         
         # 3. Solicitar serie de la UF (Código: F073.UFF.PRE.Z.D)
-        # Usamos el método 'cuadro'.
-        # 'desde="2000-01-01"' asegura que traigamos historia para que el gráfico se vea bonito.
+        # CORRECCIÓN: Agregamos el parámetro 'observado' que es obligatorio.
         df = siete.cuadro(
             series=["F073.UFF.PRE.Z.D"], 
-            nombres=["valor"],            # Renombramos la columna automáticamente
-            desde="2000-01-01",           # Traer datos históricos desde el año 2000
-            frecuencia="D"                # Frecuencia Diaria
+            nombres=["valor"],            
+            desde="2023-01-01",           # Traemos desde 2023 para que sea rápido y ligero
+            frecuencia="D",
+            observado={"valor": "last"}   # <--- ¡ESTO FALTABA!
         )
         
         # 4. Limpieza y Transformación
         # La librería devuelve la fecha como ÍNDICE. La movemos a columna.
         df.reset_index(inplace=True)
         
-        # Renombrar la columna del índice (que suele llamarse 'index' o venir sin nombre) a 'fecha'
+        # Renombrar la columna del índice a 'fecha'
         df.rename(columns={'index': 'fecha'}, inplace=True)
         
-        # Si la columna de fecha quedó con otro nombre tras el reset, forzamos los nombres:
-        # El DataFrame debería tener 2 columnas: [Fecha, Valor]
+        # Validación de columnas
         if len(df.columns) == 2:
             df.columns = ['fecha', 'valor']
         
@@ -53,7 +52,10 @@ def extract_uf_data():
         df['valor'] = pd.to_numeric(df['valor'])
         
         print(f"✅ Extracción exitosa. {len(df)} registros obtenidos.")
-        print(f"   Último dato: {df.iloc[-1]['fecha'].date()} -> {df.iloc[-1]['valor']}")
+        try:
+            print(f"   Último dato: {df.iloc[-1]['fecha'].date()} -> {df.iloc[-1]['valor']}")
+        except:
+            pass
         
         return df
 
@@ -61,7 +63,6 @@ def extract_uf_data():
         print(f"❌ Error crítico en API Banco Central: {e}")
         return pd.DataFrame()
 
-# Bloque de prueba local
 if __name__ == "__main__":
     df_test = extract_uf_data()
     if not df_test.empty:
