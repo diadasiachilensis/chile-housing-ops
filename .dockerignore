@@ -1,12 +1,75 @@
-# Directorios de entornos virtuales
+# ==========================================
+# 🛑 CONTEXTO DE CONSTRUCCIÓN Y GIT (CRÍTICO)
+# ==========================================
+# Ignorar la carpeta .git acelera drásticamente el build
+.git/
+.gitignore
+.dockerignore
+
+# ==========================================
+# 🔐 SEGURIDAD Y SECRETOS
+# ==========================================
+# Evita que tus credenciales terminen dentro de la imagen por error
+# (Aunque uses COPY . ., estos archivos serán omitidos)
+.env
+.env.*
+*.pem
+*.key
+.streamlit/secrets.toml
+
+# ==========================================
+# 🐍 PYTHON Y CACHÉ
+# ==========================================
+# Archivos compilados y caché que no sirven en Linux/Docker
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.coverage
+htmlcov/
+pip-log.txt
+
+# Entornos virtuales locales (La imagen instala sus propias dependencias)
 venv/
 env/
+.venv/
 
-# Archivos de caché
-__pycache__
-*.pyc
+# ==========================================
+# 🐳 ARCHIVOS DE INFRAESTRUCTURA
+# ==========================================
+# No necesitas copiar la orquestación dentro de los contenedores individuales
+docker-compose.yml
+docker-compose.override.yml
+Dockerfile
+*/Dockerfile
 
-# Archivos de configuración locales que no deben ir en la imagen
+# ==========================================
+# 💾 DATOS Y VOLÚMENES PERSISTENTES
+# ==========================================
+# JAMÁS copiar la carpeta de datos de la base de datos al contexto
+postgres_data/
+
+# Archivos de datos temporales o de salida del ETL
+data/
+temp/
+*.csv
+*.xlsx
+*.json
+*.sqlite3
+
+# ==========================================
+# 🖥️ SISTEMA OPERATIVO E IDE
+# ==========================================
+# Archivos basura generados por Mac/Windows o editores de código
 .DS_Store
-*.env
-*.cfg
+Thumbs.db
+ehthumbs.db
+.vscode/
+.idea/
+
+# ==========================================
+# 📄 DOCUMENTACIÓN
+# ==========================================
+# Opcional: Si no son necesarios para correr la app, ahórrate el espacio
+README.md
+docs/

@@ -21,6 +21,9 @@ services:
       POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      BCCH_USER: ${BCCH_USER}
+      BCCH_PASS: ${BCCH_PASS}
+    # Ejecuta main.py (asegúrate de que main.py llame a tu script de extracción)
     entrypoint: /bin/sh -c "sleep 5 && python main.py"
     depends_on:
       - postgres
