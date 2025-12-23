@@ -14,4 +14,4 @@ bcchapi
 
 # Dashboard Frontend
 streamlit
-plotly       <-- ¡Esta es la que faltaba!
+plotly
