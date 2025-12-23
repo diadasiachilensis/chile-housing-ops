@@ -1,13 +1,76 @@
-# Archivos de configuracion de entorno (CREDENTIALS)
+# ==========================================
+# 🔐 SEGURIDAD Y VARIABLES DE ENTORNO
+# ==========================================
+# Archivos que contienen claves API, contraseñas o credenciales.
+# JAMÁS deben subirse al repositorio.
 .env
+.env.*
+.secrets
+*.pem
+*.key
 
-# Directorios de datos de la base de datos (VOLUMES)
-postgres_data/
-
-# Directorios de logs y caches de Python
+# ==========================================
+# 🐍 PYTHON
+# ==========================================
+# Bytecode compilado (archivos temporales de ejecución)
 __pycache__/
 *.pyc
+*.pyo
+*.pyd
 
-# Logs y caches de Docker/Compose (aunque generalmente no estan aqui)
-.DS_Storevenv/
+# Entornos Virtuales (Virtual Environments)
+# Cubrimos los nombres más comunes
 env/
+venv/
+.venv/
+.env_bkp/
+
+# Distribución y empaquetado
+dist/
+build/
+*.egg-info/
+
+# ==========================================
+# 🐳 DOCKER Y BASE DE DATOS
+# ==========================================
+# Persistencia local de volúmenes (ese evita subir tu DB a GitHub)
+postgres_data/
+
+# Archivos de override para desarrollo local
+docker-compose.override.yml
+
+# ==========================================
+# 📊 DATA SCIENCE Y ARCHIVOS DE DATOS
+# ==========================================
+# Se evita subir datasets pesados o archivos generados por el ETL
+# Es mejor descargar los datos frescos con el script que subirlos al repo
+*.csv
+*.xlsx
+*.json
+*.parquet
+# Si se tiene una carpeta específica para descargas temporales:
+data/
+temp/
+
+# Jupyter Notebooks checkpoints (si se usa notebooks para pruebas)
+.ipynb_checkpoints/
+
+# ==========================================
+# 🖥️ SISTEMA OPERATIVO E IDEs
+# ==========================================
+# Archivos basura de macOS
+.DS_Store
+
+# Archivos basura de Windows
+Thumbs.db
+ehthumbs.db
+
+# Configuraciones locales de editores (VS Code, PyCharm, etc.)
+.vscode/
+.idea/
+
+# ==========================================
+# 🎈 STREAMLIT
+# ==========================================
+# Secretos específicos de Streamlit (se usara localmente)
+.streamlit/secrets.toml

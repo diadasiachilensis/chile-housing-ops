@@ -1,65 +1,74 @@
-import os  # Módulo para interactuar con el sistema operativo (necesario para leer variables de entorno).
-import psycopg2  # Librería que permite a Python conectarse y comunicarse con PostgreSQL.
-from fastapi import FastAPI, HTTPException  # Importa el framework principal para el servidor web y la clase para manejar errores HTTP.
-from pydantic import BaseModel  # Clase base para definir esquemas de datos y asegurar su validación.
-from typing import List, Optional  # Módulos de tipado de Python para indicar que se devuelve una lista de objetos.
-from datetime import date  # Clase para manejar el tipo de dato fecha.
+import os
+import psycopg2
+from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
+from typing import List
+from datetime import date
 
-"""--- 1. MODELO DE DATOS (Pydantic Schema) ---"""
-# Define la estructura de los datos que la API devolverá (response model)
-class UFData(BaseModel):  # Define el esquema de datos esperado para un registro de UF.
-    date: date  # El campo 'date' debe ser un objeto de fecha válido.
-    value: float  # El campo 'value' debe ser un número decimal (punto flotante).
-    
-""" --- 2. CONFIGURACIÓN DE LA CONEXIÓN DB ---"""
-def get_db_connection():  # Define la función encargada de abrir la conexión a la base de datos.
-    # Las variables de entorno son inyectadas por docker-compose desde el archivo .env
-    return psycopg2.connect(  # Intenta establecer y retornar el objeto de conexión a PostgreSQL.
-        host=os.getenv('POSTGRES_HOST'),  # Obtiene el nombre del servicio DB ('postgres') desde las variables de entorno.
-        database=os.getenv('POSTGRES_DB'),  # Obtiene el nombre de la base de datos ('chile_housing').
-        user=os.getenv('POSTGRES_USER'),  # Obtiene el usuario de la base de datos ('admin').
-        password=os.getenv('POSTGRES_PASSWORD')  # Obtiene la contraseña de la base de datos ('password').
-    )
+# --- 1. MODELO DE DATOS ---
+class UFData(BaseModel):
+    date: date
+    value: float
 
-"""--- 3. INICIALIZACIÓN DE LA APLICACIÓN ---"""
-# Crea una instancia de FastAPI
-app = FastAPI(  # Crea la instancia principal de la aplicación FastAPI.
-    title="Chile Housing Ops API",  # Título para la documentación automática (en /docs).
-    description="API para servir datos históricos de la UF y análisis de propiedades.",  # Descripción para la documentación.
-    version="1.0.0"  # Versión de la API.
+# --- 2. CONFIGURACIÓN DB ---
+def get_db_connection():
+    try:
+        conn = psycopg2.connect(
+            host=os.getenv('POSTGRES_HOST'),
+            database=os.getenv('POSTGRES_DB'),
+            user=os.getenv('POSTGRES_USER'),
+            password=os.getenv('POSTGRES_PASSWORD')
+        )
+        return conn
+    except psycopg2.OperationalError as e:
+        print(f"❌ Error de conexión DB: {e}")
+        return None
+
+# --- 3. APP FASTAPI ---
+app = FastAPI(
+    title="Chile Housing Ops API",
+    description="API que sirve indicadores económicos reales (Banco Central) y datos inmobiliarios.",
+    version="1.1.0"
 )
 
-"""--- 4. ENDPOINT PRINCIPAL (Root) ---"""
-@app.get("/", tags=["Healthcheck"])  # Decorador: Asocia la función a las solicitudes GET en la ruta raíz (/).
-def read_root():  # Define la función que maneja la solicitud GET /.
-    return {"status": "ok", "service": "Chile Housing Ops API"}  # Devuelve una respuesta JSON simple (Healthcheck).
+# Configuración de CORS (Permite que el Dashboard consuma la API sin problemas)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # En producción, cambia esto por la IP específica del dashboard
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
-"""--- 5. ENDPOINT DE DATOS (UF History) ---"""
-@app.get("/uf_history", response_model=List[UFData], tags=["Data"])  # Decorador: Asocia la función a solicitudes GET en /uf_history.
-def get_uf_history():  # Define la función que recupera el historial de la UF.
-    conn = None  # Inicializa la variable de conexión a None (necesario para el bloque 'finally').
-    try:  # Inicia el bloque para manejar errores de conexión/DB.
-        conn = get_db_connection()  # Intenta establecer la conexión con la base de datos.
-        cursor = conn.cursor()  # Crea un objeto cursor para ejecutar comandos SQL.
+@app.get("/", tags=["Healthcheck"])
+def read_root():
+    return {"status": "ok", "service": "Chile Housing Ops API running"}
+
+@app.get("/uf_history", response_model=List[UFData], tags=["Economics"])
+def get_uf_history():
+    conn = None
+    try:
+        conn = get_db_connection()
+        if conn is None:
+            raise HTTPException(status_code=503, detail="Database not available")
+            
+        cursor = conn.cursor()
         
-        # Consulta SQL para obtener todos los datos de la UF
-        query = "SELECT date, value FROM uf_data ORDER BY date DESC;"  # Define la consulta SQL para obtener fecha y valor ordenados.
-        cursor.execute(query)  # Ejecuta la consulta SQL definida por la variable 'query'.
+        # Ordenamos ASC (cronológico) para que los gráficos se dibujen bien de izquierda a derecha
+        query = "SELECT date, value FROM uf_data ORDER BY date ASC;" 
+        cursor.execute(query)
+        results = cursor.fetchall()
         
-        # Obtener todos los resultados
-        results = cursor.fetchall()  # Recupera todas las filas resultantes de la consulta como una lista de tuplas.
+        # Mapeo a lista de diccionarios
+        uf_history = [{"date": row[0], "value": row[1]} for row in results]
         
-        # Mapear los resultados de la base de datos al esquema Pydantic (UFData)
-        # Esto convierte cada tupla (date, value) en un diccionario
-        uf_history = [{"date": row[0], "value": row[1]} for row in results]  # Convierte las tuplas (row) en diccionarios para Pydantic.
+        return uf_history
         
-        return uf_history  # Devuelve la lista de datos mapeados, que FastAPI serializa a JSON.
+    except psycopg2.Error as e:
+        print(f"❌ DB Error query: {e}")
+        raise HTTPException(status_code=500, detail="Error ejecutando consulta en base de datos")
         
-    except psycopg2.Error as e:  # Captura errores específicos que provienen del adaptador de PostgreSQL.
-        print(f"Error de base de datos en /uf_history: {e}")  # Imprime el error en los logs del servidor para depuración.
-        # Lanza un error HTTP 500 si la base de datos falla
-        raise HTTPException(status_code=500, detail="Database connection error.")  # Responde al cliente con un error 500.
-        
-    finally:  # Bloque que siempre se ejecuta, sin importar si hubo éxito o error.
-        if conn:  # Verifica si la conexión a la DB se estableció (si 'conn' no es None).
-            conn.close()  # Cierra la conexión a PostgreSQL para liberar recursos.
+    finally:
+        if conn:
+            conn.close()

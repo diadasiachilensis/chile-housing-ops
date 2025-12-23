@@ -1,8 +1,17 @@
+# Base de Datos
 psycopg2-binary
+
+# API Backend
 fastapi
 uvicorn
-python-dotenv
 pydantic
-streamlit
+python-dotenv
+
+# Data Engineering & ETL
 pandas
 requests
+bcchapi
+
+# Dashboard Frontend
+streamlit
+plotly       <-- ¡Esta es la que faltaba!

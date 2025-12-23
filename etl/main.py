@@ -1,97 +1,107 @@
 import os
-import requests
+import time
 import psycopg2
-from datetime import datetime
+import pandas as pd
+from dotenv import load_dotenv
 
-"""----- CONFIGURACION DE LA CONEXIÓN DB -----"""
+# --- IMPORTACIÓN MODULAR ---
+# Importamos la función de extracción desde el otro script (extract_economic.py)
+# Esto requiere que ambos archivos estén en la misma carpeta dentro del Docker
+try:
+    from extract_economic import extract_uf_data
+except ImportError:
+    # Fallback por si ejecutas esto fuera de la estructura de carpetas correcta
+    print("⚠️ No se pudo importar extract_economic. Asegúrate de estar en la carpeta correcta.")
+    from extract_economic import extract_uf_data
 
-#funcion que sera llamada para abrir la conexión a la base de datos
+# Cargar variables de entorno (por si corres local sin Docker)
+load_dotenv()
+
+"""----- 1. CONFIGURACIÓN DE LA CONEXIÓN DB -----"""
 def get_db_connection():
-    return psycopg2.connect(                        #con psycopg2, estabelce la conexion con todos los parametros y devuelve el objeto de conexion 
-        host     = os.getenv('POSTGRES_HOST'),      #obtiene el valor de DB desde la variable de entorno POSTGRES_HOST. Es Docker Compose, este valor es postgres
-        database = os.getenv('POSTGRES_DB'),        #obtiene el nombre de la DB desde la variable de entorno
-        user     = os.getenv('POSTGRES_USER'),      #obtiene el nombre de la base de datos chile_housing desde la varaible de entorno
-        password = os.getenv('POSTGRES_PASSWORD')   #obtiene la contraseña desde la varible de entorno
-    )
+    try:
+        conn = psycopg2.connect(
+            host     = os.getenv('POSTGRES_HOST', 'localhost'),
+            database = os.getenv('POSTGRES_DB'),
+            user     = os.getenv('POSTGRES_USER'),
+            password = os.getenv('POSTGRES_PASSWORD')
+        )
+        return conn
+    except psycopg2.OperationalError as e:
+        print(f"⏳ La base de datos aún no está lista... Esperando. Error: {e}")
+        return None
 
-"""----- FUNCIÓN DE EXTRACCIÓN (Simulación de API UF) -----"""
-#funcion que simula la llamada a un API real para obtener los datos de la UF
-#por simplicidad, se simulara los datos para 3 días
+"""----- 2. FUNCIÓN DE CARGA (LOAD) -----"""
+def load_uf_data(conn, df):
+    """
+    Recibe un DataFrame y lo inserta en PostgreSQL
+    """
+    if df is None or df.empty:
+        print("⚠️ No hay datos nuevos para cargar.")
+        return
 
-def extract_uf_data():
-    print("➡️ 🔄 Extrayendo datos simulados de la UF… 📊💱")
-
-    #Formato: (Fecha, Valor_UF)
-    uf_data = [
-        ('2025-12-10', 38000.50),
-        ('2025-12-11', 38005.75),
-        ('2025-12-12', 38010.10)
-    ]
-
-    return uf_data
-
-"""----- FUNCIÓN DE CARGA (LOAD) -----"""
-#define la funcion para la fase de CARGA (L en ETL) Recibe el objeto de conexión (conn) y los datos (uf_data)
-
-def load_uf_data(conn, uf_data):
+    cursor = conn.cursor()
     
-    #crea un cursor. El cursor es un objeto que permite enviar comandos SQL a la DB y manejar los resutlados.
-    cursor = conn.cursor() 
-
-    # define consulta SQL (CORRECCIÓN: data -> date y : -> ;)
     insert_query = """
     INSERT INTO uf_data (date, value)
     VALUES (%s, %s)
     ON CONFLICT (date) DO NOTHING;
     """
-    #La clave es: ON CONFLICT (date) DO NOTHING;. Esto evita errores si intentamos cargar la misma fecha dos veces (la date es la clave primaria).
-
-    print(f"➡️ 📥 Cargando {len(uf_data)} valores de UF en la tabla uf_data...") 
-
-    #Itera sobre cada tupla (registro) en la lista de datos de la UF.
-    for date_str, value in uf_data:
-        #Convierte la cadena de texto de la fecha ('2025-12-10') en un objeto de fecha real de Python, que es lo que PostgreSQL espera.
-        date_obj = datetime.strptime(date_str, '%Y-%m-%d').date()
-        try: 
-            #Ejecuta la consulta SQL, reemplazando %s con los valores de la tupla (date_obj y value).
-            cursor.execute(insert_query, (date_obj,value))
-        except Exception as e:
-            print(f"❌⚠️ Error al cargar UF para {date_str}: {e}")
-            conn.rollback()                                         #Revertir la transacción si falla una fila
-
-    #Confirma la transacción. Esto hace que todos los cambios (inserciones) sean permanentes en la base de datos.
-    conn.commit()
-    print("✅➡️ Carga de datos UF completada.")
-    #cierra el cursor para liberar recrusos
-    cursor.close()
-
-"""----- FUNCIÓN PRINCIPAL DEL PIPELINE -----"""
-if __name__ == "__main__":
-    conn = None
-    try:
-        # 1. Conexión 
-        #Intenta abrir la conexión a la DB. Si falla, el programa salta al bloque except.
-        conn = get_db_connection()
-        print("✅ Conexión exitosa a PostgreSQL")
-
-        # 2. Extracción
-        # Llama a la función que extrae los datos.
-        data = extract_uf_data()
-
-        # 3. Carga
-        #Llama a la función que inserta los datos en PostgreSQL.
-        load_uf_data(conn,data)
-
-    #Captura errores específicos de la base de datos (ej. credenciales incorrectas, host no encontrado).
-    except psycopg2.Error as e:
-        print(f"❌🗄️ Error de base de datos: {e}")
     
-    #Bloque que se ejecuta siempre, haya habido error o no.
-    except Exception as e:
-        print(f"❌🗄️ Ocurrió un error inesperado: {e}")
+    print(f"➡️ 📥 Iniciando carga de {len(df)} registros a PostgreSQL...")
+    
+    inserted_count = 0
+    
+    for index, row in df.iterrows():
+        # Convertir timestamp de Pandas a date de Python
+        date_obj = row['fecha'].date()
+        value = row['valor']
+        
+        try:
+            cursor.execute(insert_query, (date_obj, value))
+            inserted_count += 1
+        except Exception as e:
+            print(f"❌ Error al insertar fila {date_obj}: {e}")
+            conn.rollback() # Revertir solo esta transacción fallida
 
-    finally:
-        #Si la conexión se abrió (conn no es None), se asegura de cerrarla para liberar el recurso de la base de datos.
+    # Guardar cambios permanentemente
+    conn.commit()
+    cursor.close()
+    print(f"✅ Carga finalizada. {inserted_count} filas procesadas correctamente.")
+
+"""----- 3. ORQUESTADOR PRINCIPAL -----"""
+if __name__ == "__main__":
+    print("🚀 Iniciando Pipeline ETL: Chile Housing Ops")
+    
+    # 1. Intentar conectar a la DB con reintentos (útil para Docker)
+    conn = None
+    max_retries = 5
+    
+    for i in range(max_retries):
+        conn = get_db_connection()
         if conn:
+            print("✅ Conexión exitosa a PostgreSQL")
+            break
+        print(f"⏳ Reintento {i+1}/{max_retries} en 5 segundos...")
+        time.sleep(5)
+
+    if conn:
+        try:
+            # 2. EXTRACCIÓN (Llamamos al especialista: extract_economic.py)
+            # Esta función ya maneja la lógica de la API y bcchapi internamente
+            df_uf = extract_uf_data()
+
+            # 3. CARGA (Ejecutamos la carga con la conexión abierta)
+            if not df_uf.empty:
+                load_uf_data(conn, df_uf)
+            else:
+                print("⚠️ La extracción no devolvió datos. Saltando etapa de carga.")
+
+        except Exception as e:
+            print(f"❌ Error crítico en el pipeline: {e}")
+        
+        finally:
             conn.close()
-            print("Conexión a PostgreSQL cerrada")
+            print("🔒 Conexión cerrada. Pipeline finalizado.")
+    else:
+        print("❌ Error fatal: No se pudo conectar a la base de datos después de varios intentos.")

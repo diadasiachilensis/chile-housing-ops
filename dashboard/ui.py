@@ -2,63 +2,109 @@ import streamlit as st
 import pandas as pd
 import requests
 import os
+import plotly.express as px  # Librería para gráficos interactivos
 
-# --- 1. Configuración de la API ---
+# --- 1. Configuración ---
 API_HOST = os.getenv("API_HOST", "localhost")
 API_PORT = 8000
+# Al usar Docker, API_HOST será 'api'
 API_URL = f"http://{API_HOST}:{API_PORT}/uf_history"
 
-# --- 2. Configuración de la página Streamlit ---
-st.set_page_config(
-    page_title="Chile Housing Ops Dashboard",
-    layout="wide"
-)
+st.set_page_config(page_title="Chile Economic Pulse", layout="wide", page_icon="🇨🇱")
 
-# --- 3. Encabezado ---
-st.title("🏠 Chile Housing Data: Histórico de UF")
-st.markdown("Dashboard de ejemplo que consume datos de la API FastAPI y PostgreSQL.")
+# --- 2. Título y Estilo ---
+st.title("🇨🇱 Indicadores Macroeconómicos: Unidad de Fomento (UF)")
+st.markdown("""
+Esta visualización consume datos reales extraídos directamente del **Banco Central de Chile** a través de nuestro pipeline ETL automatizado.
+""")
 
-# --- 4. Función de Extracción de Datos de la API ---
-@st.cache_data(ttl=600)
+# --- 3. Función de Carga ---
+@st.cache_data(ttl=3600) # Cache por 1 hora ya que la UF cambia diario
 def get_uf_data():
     try:
-        response = requests.get(API_URL)
+        response = requests.get(API_URL, timeout=5)
         response.raise_for_status()
         
         data = response.json()
+        if not data:
+            return pd.DataFrame()
+            
         df = pd.DataFrame(data)
         
-        # FIX: Normalizar nombres de columnas a minúsculas para evitar KeyError
-        df.columns = df.columns.map(str).str.lower()
+        # Limpieza de tipos
+        df["date"] = pd.to_datetime(df["date"])
+        df["value"] = pd.to_numeric(df["value"])
         
-        # Aseguramos que 'date' sea un objeto datetime para manipulación
-        df["date"] = pd.to_datetime(df["date"]).dt.date
-
-        # Formatear el valor de la UF para visualización
-        df['value_clp'] = df['value'].apply(lambda x: f"${x:,.2f}").str.replace(',', 'TEMP').str.replace('.', ',').str.replace('TEMP', '.')
+        # Ordenar cronológicamente
+        df = df.sort_values("date")
         
         return df
         
-    except requests.exceptions.RequestException as e:
-        st.error(f"❌ Error al conectar con la API ({API_HOST}:{API_PORT}). Asegúrese de que el servicio 'api' esté corriendo.")
-        st.caption(f"Detalles: {e}")
+    except Exception as e:
+        st.error(f"⚠️ No se pudo conectar con la API en {API_URL}")
+        st.caption(str(e))
         return pd.DataFrame()
 
-# --- 5. Visualización de los Datos ---
-uf_df = get_uf_data()
+# --- 4. Renderizado ---
+df = get_uf_data()
 
-if not uf_df.empty:
-    st.header("Valores Históricos de UF")
+if not df.empty:
+    # --- KPIs Principales ---
+    col1, col2, col3 = st.columns(3)
+    
+    # Obtener último valor y penúltimo para calcular variación
+    latest_rec = df.iloc[-1]
+    prev_rec = df.iloc[-2] if len(df) > 1 else latest_rec
+    
+    val_actual = latest_rec['value']
+    delta_val = val_actual - prev_rec['value']
+    
+    with col1:
+        st.metric(
+            label=f"Valor UF ({latest_rec['date'].strftime('%d-%m-%Y')})",
+            value=f"${val_actual:,.2f}",
+            delta=f"${delta_val:,.2f} (vs ayer)"
+        )
+    
+    with col2:
+        st.metric(label="Registros Totales", value=len(df))
 
-    uf_df["date"] = pd.to_datetime(uf_df["date"]).dt.date
-    uf_df["value"] = pd.to_numeric(uf_df["value"], errors="coerce")
-    uf_df = uf_df.sort_values("date")
+    # --- Gráfico de Tendencia con Plotly ---
+    st.subheader("📈 Evolución Histórica")
+    
+    # Crear el objeto figura de Plotly
+    fig = px.line(
+        df, 
+        x="date", 
+        y="value",
+        title="Evolución del Valor de la UF",
+        labels={"value": "Valor (CLP)", "date": "Fecha"}
+    )
+    
+    # Personalización del Gráfico
+    fig.update_traces(
+        line_color="#FF4B4B",  # Color rojo 'Housing'
+        hovertemplate="<b>Fecha:</b> %{x}<br><b>Valor:</b> $%{y:,.2f}<extra></extra>" # Formato moneda en tooltip
+    )
+    
+    fig.update_layout(
+        hovermode="x unified",  # Muestra una línea vertical al pasar el mouse
+        template="plotly_white", # Fondo limpio
+        xaxis_title="",
+        yaxis_title="Valor en Pesos ($)",
+        height=500
+    )
 
-    st.line_chart(uf_df.set_index("date")[["value"]])
+    # Renderizar en Streamlit
+    st.plotly_chart(fig, use_container_width=True)
 
-    st.table(uf_df[["date", "value_clp"]])
+    # --- Tabla de Datos ---
+    with st.expander("Ver tabla de datos completa"):
+        # Formatear para mostrar
+        display_df = df.copy()
+        display_df['value'] = display_df['value'].apply(lambda x: f"${x:,.2f}")
+        display_df['date'] = display_df['date'].dt.date
+        st.dataframe(display_df.sort_values('date', ascending=False), use_container_width=True)
 
-    latest_uf = uf_df.iloc[-1]["value_clp"]
-    st.metric(label="Último Valor UF Registrado (CLP)", value=latest_uf)
 else:
-    st.warning("No se pudieron cargar los datos de la UF.")
+    st.info("Esperando ejecución del ETL para poblar datos...")
