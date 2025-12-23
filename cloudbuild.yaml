@@ -1,0 +1,22 @@
+steps:
+  # 1. Construir imagen de la API
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['build', '-t', 'gcr.io/$PROJECT_ID/chile-housing-api:latest', '-f', 'api/Dockerfile', '.']
+
+  # 2. Construir imagen del Dashboard
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['build', '-t', 'gcr.io/$PROJECT_ID/chile-housing-dashboard:latest', '-f', 'dashboard/Dockerfile', '.']
+
+  # 3. Construir imagen del ETL
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['build', '-t', 'gcr.io/$PROJECT_ID/chile-housing-etl:latest', '-f', 'etl/Dockerfile', '.']
+
+# 4. Subir (Push) las imágenes a Google Container Registry (GCR)
+images:
+  - 'gcr.io/$PROJECT_ID/chile-housing-api:latest'
+  - 'gcr.io/$PROJECT_ID/chile-housing-dashboard:latest'
+  - 'gcr.io/$PROJECT_ID/chile-housing-etl:latest'
+
+# Configuración extra para velocidad
+options:
+  logging: CLOUD_LOGGING_ONLY
