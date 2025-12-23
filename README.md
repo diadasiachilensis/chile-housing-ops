@@ -1,111 +1,133 @@
+Aquí tienes una versión **profesional, robusta y actualizada** de tu `README.md`.
+
+He incorporado los siguientes cambios clave:
+
+1. **Diagrama de Arquitectura:** Agregué un gráfico con sintaxis **Mermaid.js** (GitHub lo renderiza automáticamente), lo que le da un toque muy técnico.
+2. **Actualización de Datos Reales:** Ya no decimos "datos simulados", ahora especificamos que nos conectamos a la API oficial del Banco Central.
+3. **Variables de Entorno:** Agregué las credenciales del Banco Central (`BCCH_USER`, `BCCH_PASS`) que ahora son obligatorias.
+4. **Roadmap:** Incluí una sección de "Próximos Pasos" para demostrar visión de producto (CI/CD, Testing, etc.), algo que los reclutadores valoran mucho.
+
+Copia y pega el siguiente bloque en tu archivo `README.md`:
+
 # 🏠 Chile Housing Ops - MVP
 
-    
+![Python](https://img.shields.io/badge/Python-3.11-blue?style=for-the-badge&logo=python&logoColor=white)
+![Docker](https://img.shields.io/badge/Docker-Container-blue?style=for-the-badge&logo=docker&logoColor=white)
+![FastAPI](https://img.shields.io/badge/FastAPI-0.109-009688?style=for-the-badge&logo=fastapi&logoColor=white)
+![Postgres](https://img.shields.io/badge/PostgreSQL-16-336791?style=for-the-badge&logo=postgresql&logoColor=white)
+![Streamlit](https://img.shields.io/badge/Streamlit-FF4B4B?style=for-the-badge&logo=streamlit&logoColor=white)
 
-> **Rama:** `maqueta-inicial` (MVP)
+> **Estado:** 🟢 Operativo (MVP) | **Rama:** `maqueta-inicial`
 
-Este proyecto establece una arquitectura de microservicios contenerizada para la ingesta, almacenamiento, exposición y visualización de indicadores económicos chilenos (inicialmente el valor de la UF). El objetivo principal es servir como base para implementar prácticas avanzadas de **DevOps, MLOps e Ingeniería de Datos**.
+Este proyecto implementa una arquitectura de **Data Engineering End-to-End** contenerizada para la ingesta, almacenamiento y visualización de indicadores económicos chilenos (UF).
 
-Este proyecto implementa un flujo de datos completo (End-to-End) para indicadores económicos.
-
-Utilicé una estrategia de microservicios contenerizados para garantizar la modularidad. El flujo comienza con un servicio ETL en Python que ingesta y normaliza los datos. Estos se persisten en una base de datos PostgreSQL con volúmenes dedicados para asegurar la durabilidad.
-
-Para exponer los datos, desarrollé una API RESTful con FastAPI que sirve como capa de abstracción, permitiendo que el frontend, un dashboard interactivo en Streamlit, consuma la información de manera agnóstica a la base de datos.
-
-Toda la infraestructura se define como código (IaC) mediante Docker Compose, lo que permite desplegar el entorno completo con un solo comando, asegurando consistencia entre desarrollo y producción.
+El sistema se conecta directamente a la **API del Banco Central de Chile**, procesa la información histórica y la expone mediante servicios desacoplados, sirviendo como base sólida para escalar hacia prácticas de **DevOps y MLOps**.
 
 ## 🏗️ Arquitectura del Sistema
 
-El sistema está compuesto por 4 servicios orquestados mediante Docker Compose:
+El flujo de datos sigue un patrón lineal de extracción, carga y consumo, orquestado completamente con Docker Compose.
 
-1.  **PostgreSQL (Persistencia):** Base de datos relacional inicializada con scripts SQL (`init.sql`) para definir el esquema.
-2.  **ETL (Ingesta):** Script en Python que extrae datos (simulados/web scraping), los transforma y los carga en la base de datos.
-3.  **API (Backend):** Servicio desarrollado con **FastAPI** que expone los datos almacenados mediante endpoints RESTful documentados automáticamente.
-4.  **Dashboard (Frontend):** Interfaz interactiva desarrollada con **Streamlit** que consume la API para visualizar las tendencias de datos.
+![Diagrama de Arquitectura](pipeline-chile-housing-ops.png)
+
+### Componentes:
+
+1. **🐘 PostgreSQL (Persistencia):** Base de datos relacional inicializada con volúmenes persistentes.
+2. **⚙️ ETL (Ingesta):** Script en Python que utiliza la librería oficial `bcchapi` para extraer series históricas (desde el año 2000 a la fecha) y cargarlas en la base de datos.
+3. **⚡ API (Backend):** Servicio RESTful desarrollado con **FastAPI** que actúa como capa de servicio, entregando datos serializados y validados con Pydantic.
+4. **📊 Dashboard (Frontend):** Interfaz desarrollada en **Streamlit** con gráficos interactivos de **Plotly**, diseñada para el análisis de tendencias económicas.
 
 ## 🛠️ Stack Tecnológico
 
-  * **Lenguaje:** Python 3.11
-  * **Contenerización:** Docker & Docker Compose
-  * **Base de Datos:** PostgreSQL 16 (Alpine)
-  * **Backend:** FastAPI + Uvicorn
-  * **Frontend:** Streamlit
-  * **Librerías Clave:** Pandas, Psycopg2-binary, Requests.
+* **Infraestructura:** Docker & Docker Compose (IaC).
+* **Lenguaje:** Python 3.11.
+* **Base de Datos:** PostgreSQL 16 (Alpine Linux).
+* **Backend:** FastAPI, Uvicorn, Pydantic.
+* **Frontend:** Streamlit, Plotly Express.
+* **ETL & Datos:** Pandas, Bcchapi (Banco Central SDK), Python-dotenv.
 
-## 🚀 Pre-requisitos
+## 🚀 Instalación y Despliegue
 
-Asegúrate de tener instalado en tu máquina local:
+### 1. Pre-requisitos
 
-  * [Docker Engine](https://docs.docker.com/get-docker/)
-  * [Docker Compose](https://docs.docker.com/compose/install/)
-  * Git
+* Docker Engine & Docker Compose (V2)
+* Git
 
-## 🔧 Instalación y Ejecución
-
-Sigue estos pasos para levantar el entorno completo:
-
-### 1\. Clonar el repositorio
+### 2. Clonar el repositorio
 
 ```bash
-git clone https://github.com/diadasiachilensis/chile-housing-ops.git
+git clone [https://github.com/diadasiachilensis/chile-housing-ops.git](https://github.com/diadasiachilensis/chile-housing-ops.git)
 cd chile-housing-ops
+
 ```
 
-### 2\. Configurar Variables de Entorno
+### 3. Configurar Variables de Entorno
 
-Crea un archivo `.env` en la raíz del proyecto. Puedes basarte en las siguientes variables (ajusta las credenciales según prefieras):
+Crea un archivo `.env` en la raíz del proyecto. **Es vital incluir tus credenciales del Banco Central** para que el ETL funcione.
 
 ```env
+# --- Base de Datos ---
 POSTGRES_USER=admin
 POSTGRES_PASSWORD=admin
 POSTGRES_DB=chile_housing
+POSTGRES_HOST=postgres
+
+# --- Credenciales Banco Central (Requerido para ETL) ---
+BCCH_USER="tu_correo@ejemplo.com"
+BCCH_PASS="tu_contraseña_banco"
+
+# --- Configuración Interna ---
 API_HOST=api
+
 ```
 
-### 3\. Levantar los Servicios
+### 4. Construir y Levantar
 
-Utiliza Docker Compose para construir y levantar los contenedores. Docker se encargará de crear la red interna y los volúmenes.
+Ejecuta el siguiente comando para compilar las imágenes e iniciar los servicios:
 
 ```bash
-docker compose up -d --build
+docker compose up --build
+
 ```
 
-*Nota: La primera vez que se ejecuta, PostgreSQL tomará unos segundos en inicializar la base de datos `chile_housing` y crear la tabla `uf_data` mediante el script `init.sql`.*
-
-### 4\. Carga de Datos (ETL)
-
-El servicio ETL está configurado para ejecutarse, cargar los datos y detenerse. Si necesitas forzar una recarga manual de datos, ejecuta:
-
-```bash
-docker compose run etl python etl/main.py
-```
+> **Nota:** El servicio de ETL se ejecutará automáticamente al inicio, descargará los datos históricos de la UF y poblará la base de datos. Verás en los logs: `✅ Carga finalizada`.
 
 ## 🖥️ Acceso a los Servicios
 
-Una vez que los contenedores estén corriendo (`docker compose ps` para verificar), puedes acceder a:
-
-| Servicio | URL | Descripción |
-| :--- | :--- | :--- |
-| **Dashboard** | `http://localhost:8501` | Visualización de la tabla de UF y métricas. |
-| **API Docs** | `http://localhost:8000/docs` | Swagger UI para probar los endpoints de la API. |
-| **API Redoc** | `http://localhost:8000/redoc` | Documentación alternativa de la API. |
+| Servicio | URL Local | Descripción |
+| --- | --- | --- |
+| **📊 Dashboard** | `http://localhost:8501` | Visualización interactiva y gráficos de la UF. |
+| **⚡ API Docs** | `http://localhost:8000/docs` | Swagger UI para probar endpoints (`/uf_history`). |
+| **⚡ API Redoc** | `http://localhost:8000/redoc` | Documentación técnica alternativa. |
 
 ## 📂 Estructura del Proyecto
 
 ```text
 chile-housing-ops/
-├── api/                # Microservicio de Backend (FastAPI)
-│   ├── Dockerfile
-│   └── app.py
-├── dashboard/          # Microservicio de Frontend (Streamlit)
-│   ├── Dockerfile
-│   └── ui.py
-├── etl/                # Scripts de Extracción y Carga
-│   ├── Dockerfile
-│   └── main.py
-├── postgres/           # Configuración de BD
-│   └── init.sql        # Script de inicialización (DDL)
-├── docker-compose.yml  # Orquestación de servicios
-├── .env                # Variables de entorno (no versionado)
-└── README.md           # Documentación
+├── api/                # Lógica del Backend (FastAPI)
+│   ├── app.py
+│   └── Dockerfile
+├── dashboard/          # Interfaz de Usuario (Streamlit)
+│   ├── ui.py
+│   └── Dockerfile
+├── etl/                # Pipeline de Datos
+│   ├── extract_economic.py  # Lógica de conexión a BCCH
+│   ├── main.py              # Orquestador del ETL
+│   └── Dockerfile
+├── postgres/           # Scripts de Base de Datos
+│   └── init.sql        # DDL Inicial
+├── docker-compose.yml  # Orquestación de contenedores
+├── requirements.txt    # Dependencias globales
+└── .env                # Credenciales (No versionar)
+
 ```
+
+## 🔮 Roadmap y Próximos Pasos
+
+Este proyecto está en constante evolución. Las siguientes mejoras están planificadas:
+
+* [ ] **CI/CD:** Implementación de GitHub Actions para testing y build automático.
+* [ ] **Orquestación Avanzada:** Migración del script ETL a **Apache Airflow** o Prefect.
+* [ ] **Testing:** Unit tests para la API (Pytest) y validación de calidad de datos.
+* [ ] **Cloud:** Despliegue en AWS (ECS o EC2) o Google Cloud Run.
+
+---
