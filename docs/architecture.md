@@ -15,7 +15,7 @@ Este documento define la estructura de alto nivel del sistema siguiendo el model
 
 **Objetivo:** Visualizar cómo interactúa el sistema con el mundo exterior (Usuarios y Sistemas de Terceros).
 
-![System-Context-Diagram](images/System-Context-Diagram.png)
+![System-Context-Diagram](assets/System-Context-Diagram.png)
 
 ---
 
@@ -25,43 +25,7 @@ Este documento define la estructura de alto nivel del sistema siguiendo el model
 
 **Decisión Crítica:** Se implementa una Arquitectura Basada en Eventos para desacoplar la interfaz de usuario (Baja Latencia) del proceso de ingesta de datos (Alta Latencia/Batch).
 
-```mermaid
-C4Container
-    title Diagrama de Contenedores - Arquitectura Reactiva & Data Pipeline
-
-    Person(admin, "Operador Inmobiliario", "Usuario final")
-
-    Container_Boundary(c1, "Chile-Housing-ops Quanta") {
-        
-        Container(spa, "Dashboard SPA", "React + TypeScript", "Interfaz de usuario (MVVM). Visualización de datos y gestión.")
-        
-        Container(api, "Orchestration API", "Python (FastAPI)", "API Gateway & Business Logic. Coordina peticiones síncronas.")
-        
-        Container(msg_broker, "Event Bus", "Redis", "Cola de mensajes para comunicación asíncrona y gestión de tareas.")
-        
-        Container(ingest_worker, "Ingestion Worker", "Python (Celery/Airflow)", "Ejecuta pipelines de scraping. Implementa patrones Factory & Strategy.")
-
-        ContainerDb(raw_store, "Data Lake (Bronze Layer)", "Object Storage (S3/MinIO)", "Almacenamiento de HTML/JSON crudo e inmutable.")
-        
-        ContainerDb(op_db, "Operational DB (Silver Layer)", "PostgreSQL", "Datos relacionales, limpios y estructurados.")
-    }
-
-    System_Ext(ext_web, "Webs Externas", "Fuentes de Datos")
-
-    %% Flujos
-    Rel(admin, spa, "Interactúa", "HTTPS")
-    Rel(spa, api, "API Calls", "JSON/HTTPS")
-
-    Rel(api, op_db, "Lectura (Query)", "SQL")
-    Rel(api, msg_broker, "Publica Comando 'Ingestar'", "Redis Pub/Sub")
-
-    Rel(msg_broker, ingest_worker, "Consume Tarea", "Async Protocol")
-    Rel(ingest_worker, ext_web, "Scraping", "HTTPS")
-    
-    Rel(ingest_worker, raw_store, "1. Guarda Raw Data", "Blob Write")
-    Rel(ingest_worker, op_db, "2. Guarda Datos Procesados", "SQL Upsert")
-
-```
+![Container-Diagram](assets/Container-Diagram.png)
 
 ---
 
