@@ -15,7 +15,7 @@ Este documento define la estructura de alto nivel del sistema siguiendo el model
 
 **Objetivo:** Visualizar cómo interactúa el sistema con el mundo exterior (Usuarios y Sistemas de Terceros).
 
-![System-Context-Diagram](assets/System-Context-Diagram.png)
+![System-Context-Diagram](../assets/System-Context-Diagram.png)
 
 ---
 
@@ -25,7 +25,7 @@ Este documento define la estructura de alto nivel del sistema siguiendo el model
 
 **Decisión Crítica:** Se implementa una Arquitectura Basada en Eventos para desacoplar la interfaz de usuario (Baja Latencia) del proceso de ingesta de datos (Alta Latencia/Batch).
 
-![Container-Diagram](assets/Container-Diagram.png)
+![Container-Diagram](../assets/Container-Diagram.png)
 
 ---
 
