@@ -7,7 +7,7 @@
 
 **Versión:** 1.0.0 (Fase de Diseño)
 
-Este documento define la estructura de alto nivel del sistema siguiendo el modelo C4 y justifica las decisiones técnicas basándose en principios de Ingeniería de Software Moderna e Ingeniería de Datos.
+Este documento define la estructura de alto nivel del sistema siguiendo el modelo C4 propuesto por Simon Borwn y justifica las decisiones técnicas basándose en principios de Ingeniería de Software Moderna e Ingeniería de Datos representados de forma jerárquica.
 
 ---
 
@@ -15,26 +15,7 @@ Este documento define la estructura de alto nivel del sistema siguiendo el model
 
 **Objetivo:** Visualizar cómo interactúa el sistema con el mundo exterior (Usuarios y Sistemas de Terceros).
 
-```mermaid
-C4Context
-    title Diagrama de Contexto - Chile Housing Ops
-
-    Person(admin, "Operador Inmobiliario", "Usuario que gestiona activos, visualiza tasaciones y configura alertas.")
-
-    Enterprise_Boundary(b0, "Dominio del Proyecto") {
-        System(housing_system, "Chile-Housing-ops System", "Plataforma central de orquestación de datos inmobiliarios y valuación.")
-    }
-
-    System_Ext(fuentes_datos, "Fuentes Inmobiliarias", "Portalinmobiliario, Yapo, TocToc (Alta Volatilidad/HTML).")
-    System_Ext(servicios_fin, "Servicios Financieros", "API CMF/Banco Central (Datos Estructurados/JSON).")
-    System_Ext(comms, "Sistema de Notificaciones", "Servidor SMTP / Slack Webhooks.")
-
-    Rel(admin, housing_system, "Consulta dashboard y define estrategias", "HTTPS")
-    Rel(housing_system, fuentes_datos, "Ejecuta Ingesta (Scraping)", "HTTPS")
-    Rel(housing_system, servicios_fin, "Sincroniza UF/Dólar", "API REST")
-    Rel(housing_system, comms, "Envía Alertas", "SMTP/Webhook")
-
-```
+![System-Context-Diagram](images/System-Context-Diagram.png)
 
 ---
 
