@@ -49,9 +49,3 @@ Richards y Ford (2020) en *Fundamentals of Software Architecture* enfatizan que 
 * Ford, N., & Richards, M. (2021). *Software architecture: The hard parts: Modern trade-off analysis for distributed architectures*. O'Reilly Media.
 * Freeman, E., Robson, E., Bates, B., & Sierra, K. (2004). *Head first design patterns*. O'Reilly Media.
 * Richards, M., & Ford, N. (2020). *Fundamentals of software architecture: An engineering approach*. O'Reilly Media.
-
----
-
-### Siguiente paso
-
-¿Te gustaría que redactemos la **segunda pregunta** del ADR ("¿Por qué Factory para la ingesta?") utilizando el mismo rigor académico, o prefieres pasar a la implementación en código de este patrón Strategy?
