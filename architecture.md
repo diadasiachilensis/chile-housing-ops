@@ -1,7 +1,7 @@
 
 # Arquitectura del Sistema: Chile-Housing-ops
 
-**Autor:** Guillermo Vidal Astudillo
+**Autor:** *Diadasia chilensis*
 
 **Fecha:** Diciembre 2025
 
